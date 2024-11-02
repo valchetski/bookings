@@ -125,4 +125,7 @@ When in doubt feel free to ask questions.
 # Prompts
 Here is the list of prompts for GitHub Copilot I've used:
 - [Prompt that has full description of the task from the email I've received].
-- 
+- Write xUnit integration tests for a code in Program.cs. It should cover happy paths and also edge cases
+- Use FluentAssertatoins library for asserts
+- Tests must use Program.Main() method only
+- For selected code make sure it can handle --hotels and --bookings parameters in different order and these parameters only

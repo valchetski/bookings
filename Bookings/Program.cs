@@ -1,36 +1,72 @@
 ﻿using System.Globalization;
 using System.Text.Json;
+using Bookings.Models;
+
+namespace Bookings;
 
 public class Program
 {
     public static void Main(string[] args)
     {
-        if (args.Length < 4)
+        if (args.Length != 4)
         {
             Console.WriteLine("Usage: myapp --hotels hotels.json --bookings bookings.json");
             return;
         }
 
-        string hotelsFile = args[1];
-        string bookingsFile = args[3];
+        string hotelsFile = null;
+        string bookingsFile = null;
 
-        List<Hotel> hotels = JsonSerializer.Deserialize<List<Hotel>>(File.ReadAllText(hotelsFile));
-        List<Booking> bookings = JsonSerializer.Deserialize<List<Booking>>(File.ReadAllText(bookingsFile));
-
-        while (true)
+        for (int i = 0; i < args.Length; i += 2)
         {
-            string input = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(input))
-                break;
+            if (args[i] == "--hotels")
+            {
+                hotelsFile = args[i + 1];
+            }
+            else if (args[i] == "--bookings")
+            {
+                bookingsFile = args[i + 1];
+            }
+        }
 
-            if (input.StartsWith("Availability"))
+        if (hotelsFile == null || bookingsFile == null)
+        {
+            Console.WriteLine("Usage: myapp --hotels hotels.json --bookings bookings.json");
+            return;
+        }
+
+        try
+        {
+            List<Hotel> hotels = JsonFileParser.Parse<List<Hotel>>(hotelsFile);
+            List<Booking> bookings = JsonFileParser.Parse<List<Booking>>(bookingsFile);
+
+            while (true)
             {
-                HandleAvailabilityCommand(input, hotels, bookings);
+                string input = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(input))
+                    break;
+
+                if (input.StartsWith("Availability"))
+                {
+                    HandleAvailabilityCommand(input, hotels, bookings);
+                }
+                else if (input.StartsWith("Search"))
+                {
+                    HandleSearchCommand(input, hotels, bookings);
+                }
             }
-            else if (input.StartsWith("Search"))
-            {
-                HandleSearchCommand(input, hotels, bookings);
-            }
+        }
+        catch (FileNotFoundException ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        catch (BookingsException ex) 
+        {
+            Console.WriteLine(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Unknown error: " + ex.Message);
         }
     }
 
@@ -63,9 +99,9 @@ public class Program
 
         var availableRooms = hotel.Rooms.Where(r => r.RoomType == roomType).ToList();
         var bookedRooms = bookings.Where(b => b.HotelId == hotelId && b.RoomType == roomType &&
-                                              ((b.Arrival <= startDate && b.Departure > startDate) ||
-                                               (b.Arrival < endDate && b.Departure >= endDate) ||
-                                               (b.Arrival >= startDate && b.Departure <= endDate)))
+                                              (b.Arrival <= startDate && b.Departure > startDate ||
+                                               b.Arrival < endDate && b.Departure >= endDate ||
+                                               b.Arrival >= startDate && b.Departure <= endDate))
                                    .Count();
 
         int availability = availableRooms.Count - bookedRooms;
@@ -107,35 +143,4 @@ public class Program
 
         Console.WriteLine(string.Join(", ", availabilityRanges));
     }
-}
-
-public class Hotel
-{
-    public string Id { get; set; }
-    public string Name { get; set; }
-    public List<RoomType> RoomTypes { get; set; }
-    public List<Room> Rooms { get; set; }
-}
-
-public class RoomType
-{
-    public string Code { get; set; }
-    public string Description { get; set; }
-    public List<string> Amenities { get; set; }
-    public List<string> Features { get; set; }
-}
-
-public class Room
-{
-    public string RoomType { get; set; }
-    public string RoomId { get; set; }
-}
-
-public class Booking
-{
-    public string HotelId { get; set; }
-    public DateTime Arrival { get; set; }
-    public DateTime Departure { get; set; }
-    public string RoomType { get; set; }
-    public string RoomRate { get; set; }
 }
