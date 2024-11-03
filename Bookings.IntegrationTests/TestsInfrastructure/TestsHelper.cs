@@ -6,6 +6,7 @@ internal static class TestsHelper
 {
     public const string BookingsFilePath = "./TestsInfrastructure/Data/bookings.json";
     public const string HotelsFilePath = "./TestsInfrastructure/Data/hotels.json";
+    private static readonly object _sync = new();
 
     public static string CreateTempFile<T>(T data)
     {
@@ -15,15 +16,22 @@ internal static class TestsHelper
         }
 
         var tempFile = $"TempData/{Guid.NewGuid()}.json";
-        File.WriteAllText(tempFile, JsonSerializer.Serialize(data));
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new DateFormatConverter("yyyyMMdd"));
+        File.WriteAllText(tempFile, JsonSerializer.Serialize(data, options));
         return tempFile;
     }
 
     public static string CaptureConsoleOutput(Action action)
     {
-        var output = new StringWriter();
-        Console.SetOut(output);
-        action();
-        return output.ToString();
+        // it'll run tests in parallel, but console instance is one
+        // simplest approach is just apply lock
+        lock (_sync)
+        {
+            var output = new StringWriter();
+            Console.SetOut(output);
+            action();
+            return output.ToString();
+        }
     }
 }

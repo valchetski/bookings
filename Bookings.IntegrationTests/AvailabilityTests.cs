@@ -1,4 +1,6 @@
-﻿using Bookings.Models;
+﻿using System.Globalization;
+using System.Runtime.InteropServices;
+using Bookings.Models;
 using FluentAssertions;
 using static Bookings.IntegrationTests.TestsInfrastructure.TestsHelper;
 
@@ -108,5 +110,173 @@ public class AvailabilityTests
 
         // Assert
         output.Should().Contain("2");
+    }
+    
+    [Theory]
+    [InlineData("20240101", "20240102", "20231231-20240101")]
+    [InlineData("20240101", "20240102", "20231231")]
+    [InlineData("20240101", "20240102", "20240102-20240103")]
+    [InlineData("20240101", "20240102", "20240103")]
+    public void ShouldShowAvailability_WhenSomeRoomsAreAvailable(
+        string bookingStart,
+        string bookingEnd,
+        string dateRange)
+    {
+        // Arrange
+        var bookings = new List<Booking>
+        {
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = DateTime.ParseExact(bookingStart, "yyyyMMdd", CultureInfo.CurrentCulture),
+                Departure = DateTime.ParseExact(bookingEnd, "yyyyMMdd", CultureInfo.CurrentCulture),
+                RoomType = "SGL"
+            },
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = new DateTime(2023, 1, 1),
+                Departure = new DateTime(2025, 1, 2),
+                RoomType = "SGL"
+            }
+        };
+        var bookingsFile = CreateTempFile(bookings);
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
+
+        // Act
+        var output = CaptureConsoleOutput(() =>
+        {
+            Console.SetIn(new StringReader($"Availability(H1, {dateRange}, SGL)\n"));
+            Program.Main(args);
+        });
+
+        // Assert
+        output.Trim().Should().Be("1");
+    }
+    
+    [Fact]
+    public void ShouldShowUnavailable_WhenNoRoomsAreAvailable()
+    {
+        // Arrange
+        var bookings = new List<Booking>
+        {
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = new DateTime(2024, 1, 1),
+                Departure = new DateTime(2024, 1, 2),
+                RoomType = "SGL"
+            },
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = new DateTime(2024, 1, 1),
+                Departure = new DateTime(2024, 1, 2),
+                RoomType = "SGL"
+            }
+        };
+        var bookingsFile = CreateTempFile(bookings);
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
+
+        // Act
+        var output = CaptureConsoleOutput(() =>
+        {
+            Console.SetIn(new StringReader("Availability(H1, 20240101-20240102, SGL)\n"));
+            Program.Main(args);
+        });
+
+        // Assert
+        output.Trim().Should().Be("0");
+    }
+    
+    [Fact]
+    public void ShouldShowOverbooking_WhenOverbooked()
+    {
+        // Arrange
+        var bookings = new List<Booking>
+        {
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = new DateTime(2024, 1, 1),
+                Departure = new DateTime(2024, 1, 2),
+                RoomType = "SGL"
+            },
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = new DateTime(2024, 1, 1),
+                Departure = new DateTime(2024, 1, 2),
+                RoomType = "SGL"
+            },
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = new DateTime(2024, 1, 1),
+                Departure = new DateTime(2024, 1, 2),
+                RoomType = "SGL"
+            }
+        };
+        var bookingsFile = CreateTempFile(bookings);
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
+
+        // Act
+        var output = CaptureConsoleOutput(() =>
+        {
+            Console.SetIn(new StringReader("Availability(H1, 20240101-20240102, SGL)\n"));
+            Program.Main(args);
+        });
+
+        // Assert
+        output.Trim().Should().Be("-1");
+    }
+    
+    [Fact]
+    public void ShouldShowOverbooking_WhenSignificantlyOverbooked()
+    {
+        // Arrange
+        var bookings = new List<Booking>
+        {
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = new DateTime(2024, 1, 1),
+                Departure = new DateTime(2024, 1, 2),
+                RoomType = "SGL"
+            },
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = new DateTime(2024, 1, 1),
+                Departure = new DateTime(2024, 1, 2),
+                RoomType = "SGL"
+            },
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = new DateTime(2024, 1, 1),
+                Departure = new DateTime(2024, 1, 2),
+                RoomType = "SGL"
+            },
+            new Booking
+            {
+                HotelId = "H1",
+                Arrival = new DateTime(2024, 1, 1),
+                Departure = new DateTime(2024, 1, 2),
+                RoomType = "SGL"
+            }
+        };
+        var bookingsFile = CreateTempFile(bookings);
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
+
+        // Act
+        var output = CaptureConsoleOutput(() =>
+        {
+            Console.SetIn(new StringReader("Availability(H1, 20240101-20240102, SGL)\n"));
+            Program.Main(args);
+        });
+
+        // Assert
+        output.Trim().Should().Be("-2");
     }
 }

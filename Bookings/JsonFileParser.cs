@@ -14,6 +14,7 @@ internal static class JsonFileParser
 
         // TODO: Add tests for null?
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new DateFormatConverter("yyyyMMdd"));
         return JsonSerializer.Deserialize<T>(File.ReadAllText(file), options);
     }
 }

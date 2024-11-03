@@ -1,4 +1,6 @@
-﻿namespace Bookings.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace Bookings.Models;
 
 public class Booking
 {

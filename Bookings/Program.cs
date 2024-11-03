@@ -138,7 +138,9 @@ public class Program
 
         var roomType = parameters[2];
 
-        Console.WriteLine(AvailabilityService.FindAvailableRoomsCount(hotelId, startDate, endDate, roomType, hotels, bookings));
+        var availableRoomsCount =
+            AvailabilityService.FindAvailableRoomsCount(hotelId, startDate, endDate, roomType, hotels, bookings);
+        Console.WriteLine(availableRoomsCount);
     }
 
     private static void HandleSearchCommand(string input, List<Hotel> hotels, List<Booking> bookings)

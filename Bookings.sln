@@ -7,6 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		README.MD = README.MD
+		.gitignore = .gitignore
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bookings.IntegrationTests", "Bookings.IntegrationTests\Bookings.IntegrationTests.csproj", "{19416859-F9A2-44D8-A0BD-1DF5DEED8F7D}"
