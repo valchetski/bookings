@@ -26,10 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="TestsData\bookings.json">
+    <None Update="TestsInfrastructure\Data\bookings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="TestsData\hotels.json">
+    <None Update="TestsInfrastructure\Data\hotels.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

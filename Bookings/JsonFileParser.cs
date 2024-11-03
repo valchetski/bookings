@@ -13,6 +13,7 @@ internal static class JsonFileParser
         }
 
         // TODO: Add tests for null?
-        return JsonSerializer.Deserialize<T>(File.ReadAllText(file));
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        return JsonSerializer.Deserialize<T>(File.ReadAllText(file), options);
     }
 }

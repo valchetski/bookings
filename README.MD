@@ -129,3 +129,4 @@ Here is the list of prompts for GitHub Copilot I've used:
 - Use FluentAssertatoins library for asserts
 - Tests must use Program.Main() method only
 - For selected code make sure it can handle --hotels and --bookings parameters in different order and these parameters only
+- Write regexp that will parse a string with command name and list of comma-separated values in brackets. Example of input: Availability(Param1, Param2,Param3)

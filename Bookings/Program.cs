@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Bookings.Models;
 
 namespace Bookings;
@@ -37,22 +38,41 @@ public class Program
 
         try
         {
+            // TODO: Maybe safe hotels and bookings in some service?
             List<Hotel> hotels = JsonFileParser.Parse<List<Hotel>>(hotelsFile);
             List<Booking> bookings = JsonFileParser.Parse<List<Booking>>(bookingsFile);
+            var commandRegexp = new Regex(@"^(Availability|Search)\(([^)]+)\)$");
 
             while (true)
             {
-                string input = Console.ReadLine();
+                var input = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(input))
+                {
                     break;
-
-                if (input.StartsWith("Availability"))
-                {
-                    HandleAvailabilityCommand(input, hotels, bookings);
                 }
-                else if (input.StartsWith("Search"))
+
+                var match = commandRegexp.Match(input);
+                if (!match.Success)
                 {
-                    HandleSearchCommand(input, hotels, bookings);
+                    Console.WriteLine("Input is invalid.");
+                    Console.WriteLine("To check room availability, use the format: Availability(hotelId, dateRange, roomType)");
+                    Console.WriteLine("To search for available rooms, use the format: Search(hotelId, daysAhead, roomType)");
+                    Console.WriteLine("To exit, press Enter.");
+                    continue;
+                }
+
+                var parameters = match.Groups[2].Value
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .ToArray();
+                switch (match.Groups[1].Value)
+                {
+                    case "Availability":
+                        HandleAvailabilityCommand(hotels, bookings, parameters);
+                        break;
+                    case "Search":
+                        HandleSearchCommand(input, hotels, bookings);
+                        break;
                 }
             }
         }
@@ -68,44 +88,57 @@ public class Program
         {
             Console.WriteLine("Unknown error: " + ex.Message);
         }
+        // TODO: Add return code: 0 for success, 1 for error
     }
 
-    private static void HandleAvailabilityCommand(string input, List<Hotel> hotels, List<Booking> bookings)
+    // TODO: Move it to separate class/method?
+    private static void HandleAvailabilityCommand( List<Hotel> hotels, List<Booking> bookings, params string[] parameters)
     {
-        var parts = input.Split(new[] { '(', ',', ')' }, StringSplitOptions.RemoveEmptyEntries);
-        string hotelId = parts[1].Trim();
-        string dateRange = parts[2].Trim();
-        string roomType = parts[3].Trim();
+        if (parameters.Length != 3)
+        {
+            Console.WriteLine("Provide full parameters lists and try again");
+            return;
+        }
 
+        var hotelId = parameters[0];
+
+        var dateRange = parameters[1];
         DateTime startDate, endDate;
         if (dateRange.Contains('-'))
         {
             var dates = dateRange.Split('-');
-            startDate = DateTime.ParseExact(dates[0], "yyyyMMdd", CultureInfo.InvariantCulture);
-            endDate = DateTime.ParseExact(dates[1], "yyyyMMdd", CultureInfo.InvariantCulture);
+            // TODO: Move parsing to a separate method?
+            if(!DateTime.TryParseExact(dates[0], "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out startDate))
+            {
+                Console.WriteLine("Invalid date range");
+                return;
+            }
+
+            if (!DateTime.TryParseExact(dates[1], "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out endDate))
+            {
+                Console.WriteLine("Invalid date range");
+                return;
+            }
+
+            if (startDate > endDate)
+            {
+                Console.WriteLine("Start date cannot be after end date");
+                return;
+            }
         }
         else
         {
-            startDate = DateTime.ParseExact(dateRange, "yyyyMMdd", CultureInfo.InvariantCulture);
+            if (!DateTime.TryParseExact(dateRange, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out startDate))
+            {
+                Console.WriteLine("Invalid date range");
+                return;
+            }
             endDate = startDate;
         }
 
-        var hotel = hotels.FirstOrDefault(h => h.Id == hotelId);
-        if (hotel == null)
-        {
-            Console.WriteLine("Hotel not found");
-            return;
-        }
+        var roomType = parameters[2];
 
-        var availableRooms = hotel.Rooms.Where(r => r.RoomType == roomType).ToList();
-        var bookedRooms = bookings.Where(b => b.HotelId == hotelId && b.RoomType == roomType &&
-                                              (b.Arrival <= startDate && b.Departure > startDate ||
-                                               b.Arrival < endDate && b.Departure >= endDate ||
-                                               b.Arrival >= startDate && b.Departure <= endDate))
-                                   .Count();
-
-        int availability = availableRooms.Count - bookedRooms;
-        Console.WriteLine(availability);
+        Console.WriteLine(AvailabilityService.FindAvailableRoomsCount(hotelId, startDate, endDate, roomType, hotels, bookings));
     }
 
     private static void HandleSearchCommand(string input, List<Hotel> hotels, List<Booking> bookings)
