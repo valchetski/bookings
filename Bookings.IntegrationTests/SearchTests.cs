@@ -1,197 +1,231 @@
 ﻿using Bookings.Models;
 using FluentAssertions;
+using System.Text.Json;
+using Xunit.Abstractions;
 using static Bookings.IntegrationTests.TestsInfrastructure.TestsHelper;
+using static Bookings.DateUtils;
 
-namespace Bookings.IntegrationTests
+namespace Bookings.IntegrationTests;
+
+public class SearchTests(ITestOutputHelper testOutputHelper)
 {
-    public class SearchTests
+    [Theory]
+    [InlineData("Search(H1)")]
+    [InlineData("Search(H1,)")]
+    [InlineData("Search(H1,365)")]
+    [InlineData("Search(H1,365,)")]
+    public void ShouldShowError_WhenArgumentsListIsIncomplete(string incompleteSearchCommand)
     {
-        [Fact]
-        public void ShouldShowError_WhenArgumentsListIsIncomplete()
+        // Arrange
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
+
+        // Act
+        var output = CaptureConsoleOutput(() =>
         {
-            // Arrange
-            var incompleteSearchCommands = new []
-            {
-                "Search(H1)",
-                "Search(H1,)",
-                "Search(H1,365)",
-                "Search(H1,365,)"
-            };
-            var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
+            // Simulate the command execution
+            Console.SetIn(new StringReader(incompleteSearchCommand));
+            Program.Main(args);
+        });
 
-            foreach (var incompleteSearchCommand in incompleteSearchCommands)
-            {
-                // Act
-                var output = CaptureConsoleOutput(() => 
-                {
-                    // Simulate the command execution
-                    SearchCommand(incompleteSearchCommand, args);
-                });
+        // Assert
+        output.Should().Contain("Provide full parameters list and try again");
+    }
 
-                // Assert
-                output.Should().Contain("Provide full parameter lists and try again");
+    [Fact]
+    public void ShouldShowHotelNotFound_WhenHotelDoesNotExist()
+    {
+        // Arrange
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
+
+        // Act
+        var output = CaptureConsoleOutput(() => 
+        {
+            // Simulate command execution with a non-existent hotel
+            Console.SetIn(new StringReader("Search(NonExistentHotel, 365, SGL)"));
+            Program.Main(args);
+        });
+
+        // Assert
+        output.Should().Contain("Hotel not found");
+    }
+
+    [Theory]
+    [InlineData("not a number")]
+    [InlineData("-365")]
+    public void ShouldShowError_WhenNumberOfDaysIsInvalid(string invalidDays)
+    {
+        // Arrange
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
+
+        // Act
+        var output = CaptureConsoleOutput(() => 
+        {
+            // Simulate command execution with an invalid number of days
+            Console.SetIn(new StringReader($"Search(H1, {invalidDays}, SGL)"));
+            Program.Main(args);
+        });
+
+        // Assert
+        output.Should().Contain("Invalid number of days");
+    }
+
+    [Fact]
+    public void ShouldShowError_WhenRoomTypeIsNotSupportedByTheHotel()
+    {
+        // Arrange
+        var bookings = new List<Booking>();
+        var bookingsFile = CreateTempFile(bookings);
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
+        var days = 365;
+
+        // Act
+        var output = CaptureConsoleOutput(() =>
+        {
+            // Simulate command execution for room availability
+            Console.SetIn(new StringReader($"Search(H1, {days}, UNSUPPORTED)"));
+            Program.Main(args);
+        });
+
+        // Assert
+        output.Trim().Should().Be("Room type is not supported by the hotel.");
+    }
+
+    [Fact]
+    public void ShouldShowResults_WhenAllRoomsAreAvailable()
+    {
+        // Arrange
+        var bookings = new List<Booking>();
+        var bookingsFile = CreateTempFile(bookings);
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
+        var days = 365;
+
+        // Act
+        var output = CaptureConsoleOutput(() => 
+        {
+            // Simulate command execution for room availability
+            Console.SetIn(new StringReader($"Search(H1, {days}, SGL)"));
+            Program.Main(args);
+        });
+
+        // Assert
+        var startDate = DateTime.Today;
+        var endDate = startDate.AddDays(days);
+        output.Trim().Should().Be($"({Format(startDate)}-{Format(endDate)},2)");
+    }
+
+    [Fact]
+    public void ShouldShowResults_WhenPartiallyAvailable()
+    {
+        // Arrange
+        var today = DateTime.Today;
+        var oneReservationEndDate = today.AddDays(1);
+        var partiallyBookedStartDate = today.AddDays(4);
+        var partiallyBookedEndDate = today.AddDays(5);
+        var fullyBookedStartDate = today.AddDays(7);
+        var fullyBookedEndDate = today.AddDays(8);
+        var daysAhead = 365;
+
+        var bookings = new List<Booking>
+        {
+            new() {
+                HotelId = "H1",
+                Arrival = today,
+                Departure = oneReservationEndDate,
+                RoomType = "SGL"
+            },
+            new() {
+                HotelId = "H1",
+                Arrival = partiallyBookedStartDate,
+                Departure = partiallyBookedEndDate,
+                RoomType = "SGL"
+            },
+            new() {
+                HotelId = "H1",
+                Arrival = partiallyBookedStartDate,
+                Departure = partiallyBookedEndDate,
+                RoomType = "SGL"
+            },
+            new() {
+                HotelId = "H1",
+                Arrival = fullyBookedStartDate,
+                Departure = fullyBookedEndDate,
+                RoomType = "SGL"
+            },
+            new() {
+                HotelId = "H1",
+                Arrival = fullyBookedStartDate,
+                Departure = fullyBookedEndDate,
+                RoomType = "SGL"
+            },
+            new() {
+                HotelId = "H1",
+                Arrival = fullyBookedStartDate,
+                Departure = fullyBookedEndDate,
+                RoomType = "SGL"
             }
-        }
+        };
 
-        [Fact]
-        public void ShouldShowHotelNotFound_WhenHotelDoesNotExist()
+        testOutputHelper.WriteLine("Bookings:");
+        testOutputHelper.WriteLine(JsonSerializer.Serialize(bookings, new JsonSerializerOptions() { WriteIndented = true }));
+
+        var bookingsFile = CreateTempFile(bookings);
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
+
+        // Act
+        var output = CaptureConsoleOutput(() => 
         {
-            // Arrange
-            var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
+            // Simulate command execution with no available rooms
+            Console.SetIn(new StringReader($"Search(H1, {daysAhead}, SGL)"));
+            Program.Main(args);
+        });
 
-            // Act
-            var output = CaptureConsoleOutput(() => 
-            {
-                // Simulate command execution with a non-existent hotel
-                Console.SetIn(new StringReader("Search(NonExistentHotel, 365, SGL)"));
-                Program.Main(args);
-            });
+        // Assert
+        output.Trim().Should().Be(
+            $"({Format(today)}-{Format(oneReservationEndDate)},1), " +
+            $"({Format(oneReservationEndDate)}-{Format(partiallyBookedStartDate)},2), " +
+            $"({Format(partiallyBookedEndDate)}-{Format(fullyBookedStartDate)},2), " +
+            $"({Format(fullyBookedEndDate)}-{Format(today.AddDays(daysAhead))},2)");
+    }
 
-            // Assert
-            output.Should().Contain("Hotel not found");
-        }
+    [Fact]
+    public void ShouldShowResults_WhenUnavailable()
+    {
+        // Arrange
+        var fullyBookedStartDate = DateTime.Today;
+        var fullyBookedEndDate = fullyBookedStartDate.AddDays(1);
+        var daysAhead = 1;
 
-        [Theory]
-        [InlineData("not a number")]
-        [InlineData("-365")]
-        public void ShouldShowError_WhenNumberOfDaysIsInvalid(string invalidDays)
+        var bookings = new List<Booking>
         {
-            // Arrange
-            var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
+            new() {
+                HotelId = "H1",
+                Arrival = fullyBookedStartDate,
+                Departure = fullyBookedEndDate,
+                RoomType = "SGL"
+            },
+            new() {
+                HotelId = "H1",
+                Arrival = fullyBookedStartDate,
+                Departure = fullyBookedEndDate,
+                RoomType = "SGL"
+            }
+        };
 
-            // Act
-            var output = CaptureConsoleOutput(() => 
-            {
-                // Simulate command execution with an invalid number of days
-                Console.SetIn(new StringReader($"Search(H1, {invalidDays}, SGL)"));
-                Program.Main(args);
-            });
+        testOutputHelper.WriteLine("Bookings:");
+        testOutputHelper.WriteLine(JsonSerializer.Serialize(bookings, new JsonSerializerOptions() { WriteIndented = true }));
 
-            // Assert
-            output.Should().Contain("Invalid number of days");
-        }
+        var bookingsFile = CreateTempFile(bookings);
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
 
-        [Fact]
-        public void ShouldShowError_WhenRoomTypeIsInvalid()
+        // Act
+        var output = CaptureConsoleOutput(() =>
         {
-            // Arrange
-            var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
+            // Simulate command execution with no available rooms
+            Console.SetIn(new StringReader($"Search(H1, {daysAhead}, SGL)"));
+            Program.Main(args);
+        });
 
-            // Act
-            var output = CaptureConsoleOutput(() => 
-            {
-                // Simulate command execution with an invalid room type
-                Console.SetIn(new StringReader("Search(H1, 365, INVALID_ROOM_TYPE)"));
-                Program.Main(args);
-            });
-
-            // Assert
-            output.Should().Contain("Room type not found");
-        }
-
-        [Fact]
-        public void ShouldShowAvailability_WhenAllRoomsAreAvailable()
-        {
-            // Arrange
-            var bookings = new List<Booking>
-            {
-                new Booking
-                {
-                    HotelId = "H1",
-                    Arrival = new DateTime(2024, 1, 1),
-                    Departure = new DateTime(2024, 1, 2),
-                    RoomType = "SGL"
-                }
-            };
-            var bookingsFile = CreateTempFile(bookings);
-            var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
-
-            // Act
-            var output = CaptureConsoleOutput(() => 
-            {
-                // Simulate command execution for room availability
-                SearchCommand("Search(H1, 365, SGL)", args);
-            });
-
-            // Assert
-            output.Should().Contain("365");
-        }
-
-        [Fact]
-        public void ShouldShowUnavailable_WhenNoRoomsAreAvailable()
-        {
-            // Arrange
-            var bookings = new List<Booking>
-            {
-                new Booking
-                {
-                    HotelId = "H1",
-                    Arrival = new DateTime(2024, 1, 1),
-                    Departure = new DateTime(2024, 1, 2),
-                    RoomType = "SGL"
-                },
-                new Booking
-                {
-                    HotelId = "H1",
-                    Arrival = new DateTime(2024, 1, 1),
-                    Departure = new DateTime(2024, 1, 2),
-                    RoomType = "SGL"
-                }
-            };
-            var bookingsFile = CreateTempFile(bookings);
-            var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
-
-            // Act
-            var output = CaptureConsoleOutput(() => 
-            {
-                // Simulate command execution with no available rooms
-                SearchCommand("Search(H1, 365, SGL)", args);
-            });
-
-            // Assert
-            output.Trim().Should().Be("0");
-        }
-
-        [Fact]
-        public void ShouldShowOverbooking_WhenOverbooked()
-        {
-            // Arrange
-            var bookings = new List<Booking>
-            {
-                new Booking
-                {
-                    HotelId = "H1",
-                    Arrival = new DateTime(2024, 1, 1),
-                    Departure = new DateTime(2024, 1, 2),
-                    RoomType = "SGL"
-                },
-                new Booking
-                {
-                    HotelId = "H1",
-                    Arrival = new DateTime(2024, 1, 1),
-                    Departure = new DateTime(2024, 1, 2),
-                    RoomType = "SGL"
-                },
-                new Booking
-                {
-                    HotelId = "H1",
-                    Arrival = new DateTime(2024, 1, 1),
-                    Departure = new DateTime(2024, 1, 2),
-                    RoomType = "SGL"
-                }
-            };
-            var bookingsFile = CreateTempFile(bookings);
-            var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
-
-            // Act
-            var output = CaptureConsoleOutput(() => 
-            {
-                // Simulate command execution with overbooked rooms
-                SearchCommand("Search(H1, 365, SGL)", args);
-            });
-
-            // Assert
-            output.Trim().Should().Be("-1");
-        }
+        // Assert
+        output.Should().Be("\r\n");
     }
 }

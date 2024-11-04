@@ -26,7 +26,7 @@ public class AvailabilityTests
         });
 
         // Assert
-        output.Should().Contain("Provide full parameters lists and try again");
+        output.Trim().Should().Be("Provide full parameters list and try again");
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class AvailabilityTests
         });
 
         // Assert
-        output.Should().Contain("Hotel not found");
+        output.Trim().Should().Be("Hotel not found");
     }
 
     [Theory]
@@ -64,7 +64,7 @@ public class AvailabilityTests
         });
 
         // Assert
-        output.Should().Contain("Invalid date range");
+        output.Trim().Should().Be("Invalid date");
     }
 
     [Fact]
@@ -81,7 +81,34 @@ public class AvailabilityTests
         });
 
         // Assert
-        output.Should().Contain("Start date cannot be after end date");
+        output.Trim().Should().Be("Start date cannot be after end date");
+    }
+
+    [Fact]
+    public void ShouldShowError_WhenRoomTypeIsNotSupported()
+    {
+        // Arrange
+        var bookings = new List<Booking>
+        {
+            new() {
+                HotelId = "H1",
+                Arrival = new DateTime(2024, 1, 1),
+                Departure = new DateTime(2024, 1, 2),
+                RoomType = "SGL"
+            }
+        };
+        var bookingsFile = CreateTempFile(bookings);
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
+
+        // Act
+        var output = CaptureConsoleOutput(() =>
+        {
+            Console.SetIn(new StringReader("Availability(H1, 20240104-20240105, NOT_SUPPORTED)\n"));
+            Program.Main(args);
+        });
+
+        // Assert
+        output.Trim().Should().Be("Room type is not supported by the hotel.");
     }
 
     [Fact]
@@ -90,8 +117,7 @@ public class AvailabilityTests
         // Arrange
         var bookings = new List<Booking>
         {
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2024, 1, 1),
                 Departure = new DateTime(2024, 1, 2),
@@ -109,7 +135,7 @@ public class AvailabilityTests
         });
 
         // Assert
-        output.Should().Contain("2");
+        output.Trim().Should().Be("2");
     }
     
     [Theory]
@@ -125,15 +151,13 @@ public class AvailabilityTests
         // Arrange
         var bookings = new List<Booking>
         {
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
-                Arrival = DateTime.ParseExact(bookingStart, "yyyyMMdd", CultureInfo.CurrentCulture),
-                Departure = DateTime.ParseExact(bookingEnd, "yyyyMMdd", CultureInfo.CurrentCulture),
+                Arrival = DateUtils.Parse(bookingStart),
+                Departure = DateUtils.Parse(bookingEnd),
                 RoomType = "SGL"
             },
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2023, 1, 1),
                 Departure = new DateTime(2025, 1, 2),
@@ -160,15 +184,13 @@ public class AvailabilityTests
         // Arrange
         var bookings = new List<Booking>
         {
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2024, 1, 1),
                 Departure = new DateTime(2024, 1, 2),
                 RoomType = "SGL"
             },
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2024, 1, 1),
                 Departure = new DateTime(2024, 1, 2),
@@ -195,22 +217,19 @@ public class AvailabilityTests
         // Arrange
         var bookings = new List<Booking>
         {
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2024, 1, 1),
                 Departure = new DateTime(2024, 1, 2),
                 RoomType = "SGL"
             },
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2024, 1, 1),
                 Departure = new DateTime(2024, 1, 2),
                 RoomType = "SGL"
             },
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2024, 1, 1),
                 Departure = new DateTime(2024, 1, 2),
@@ -237,29 +256,25 @@ public class AvailabilityTests
         // Arrange
         var bookings = new List<Booking>
         {
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2024, 1, 1),
                 Departure = new DateTime(2024, 1, 2),
                 RoomType = "SGL"
             },
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2024, 1, 1),
                 Departure = new DateTime(2024, 1, 2),
                 RoomType = "SGL"
             },
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2024, 1, 1),
                 Departure = new DateTime(2024, 1, 2),
                 RoomType = "SGL"
             },
-            new Booking
-            {
+            new() {
                 HotelId = "H1",
                 Arrival = new DateTime(2024, 1, 1),
                 Departure = new DateTime(2024, 1, 2),

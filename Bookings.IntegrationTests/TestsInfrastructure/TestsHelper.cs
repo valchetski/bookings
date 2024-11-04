@@ -17,7 +17,7 @@ internal static class TestsHelper
 
         var tempFile = $"TempData/{Guid.NewGuid()}.json";
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        options.Converters.Add(new DateFormatConverter("yyyyMMdd"));
+        options.Converters.Add(new DateFormatConverter());
         File.WriteAllText(tempFile, JsonSerializer.Serialize(data, options));
         return tempFile;
     }

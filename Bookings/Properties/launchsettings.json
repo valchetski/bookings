@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Bookings_Test": {
+      "commandName": "Project",
+      "commandLineArgs": "--hotels ./samples/hotels.json --bookings ./samples/bookings.json"
+    },
+    "Bookings": {
+      "commandName": "Project"
+    }
+  }
+}
