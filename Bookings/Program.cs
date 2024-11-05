@@ -71,7 +71,6 @@ public static partial class Program
                 if (!match.Success)
                 {
                     Console.WriteLine("Input is invalid.");
-                    ShowHelp();
                     continue;
                 }
 

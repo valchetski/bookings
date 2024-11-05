@@ -16,7 +16,9 @@ internal class AvailabilityService : IAvailabilityService
 
         var allRooms = hotel.Rooms.Count(r => r.RoomType == roomType);
         var bookedRooms = bookings.Count(b => b.HotelId == hotelId && b.RoomType == roomType &&
-                                              startDate < b.Departure && endDate > b.Arrival);
+                                              (b.Arrival <= startDate && b.Departure > startDate) ||
+                                               (b.Arrival < endDate && b.Departure >= endDate) ||
+                                               (b.Arrival >= startDate && b.Departure <= endDate));
 
         return allRooms - bookedRooms;
     }

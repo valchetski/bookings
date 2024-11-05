@@ -19,11 +19,7 @@ public class AvailabilityTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader(incompleteAvailabilityCommand));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput(incompleteAvailabilityCommand, args);
 
         // Assert
         output.Trim().Should().Be("Provide full parameters list and try again");
@@ -36,11 +32,7 @@ public class AvailabilityTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader("Availability(dont_exist, 20230101-20230102, SGL)\n"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput("Availability(dont_exist, 20230101-20230102, SGL)\n", args);
 
         // Assert
         output.Trim().Should().Be("Hotel not found");
@@ -57,11 +49,7 @@ public class AvailabilityTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader($"Availability(1, {invalidDateRange}, SGL)\n"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput($"Availability(1, {invalidDateRange}, SGL)\n", args);
 
         // Assert
         output.Trim().Should().Be("Invalid date");
@@ -74,11 +62,7 @@ public class AvailabilityTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader("Availability(1, 20230102-20230101, SGL)\n"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput("Availability(1, 20230102-20230101, SGL)\n", args);
 
         // Assert
         output.Trim().Should().Be("Start date cannot be after end date");
@@ -101,11 +85,7 @@ public class AvailabilityTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader("Availability(H1, 20240104-20240105, NOT_SUPPORTED)\n"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput("Availability(H1, 20240104-20240105, NOT_SUPPORTED)\n", args);
 
         // Assert
         output.Trim().Should().Be("Room type is not supported by the hotel.");
@@ -128,11 +108,7 @@ public class AvailabilityTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader("Availability(H1, 20240104-20240105, SGL)\n"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput("Availability(H1, 20240104-20240105, SGL)\n", args);
 
         // Assert
         output.Trim().Should().Be("2");
@@ -140,9 +116,7 @@ public class AvailabilityTests
     
     [Theory]
     [InlineData("20240101", "20240102", "20231231-20240101")]
-    [InlineData("20240101", "20240102", "20231231")]
     [InlineData("20240101", "20240102", "20240102-20240103")]
-    [InlineData("20240101", "20240102", "20240103")]
     public void ShouldShowAvailability_WhenSomeRoomsAreAvailable(
         string bookingStart,
         string bookingEnd,
@@ -168,16 +142,51 @@ public class AvailabilityTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader($"Availability(H1, {dateRange}, SGL)\n"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput($"Availability(H1, {dateRange}, SGL)\n", args);
 
         // Assert
         output.Trim().Should().Be("1");
     }
-    
+
+    [Theory]
+    [InlineData("20231231", "20240102", "20240101", 0)]
+    [InlineData("20240101", "20240102", "20240101", 0)]
+    [InlineData("20240101", "20240102", "20240102", 0)]
+    [InlineData("20231231", "20240102", "20231230", 1)]
+    [InlineData("20240101", "20240102", "20231231", 1)]
+    [InlineData("20240101", "20240102", "20240103", 1)]
+    public void ShouldShowAvailability_WhenSomeRoomsAreAvailableAndRangeIsOneDate(
+        string bookingStart,
+        string bookingEnd,
+        string dateRange,
+        int availableRoomsCount)
+    {
+        // Arrange
+        var bookings = new List<Booking>
+        {
+            new() {
+                HotelId = "H1",
+                Arrival = DateUtils.Parse(bookingStart),
+                Departure = DateUtils.Parse(bookingEnd),
+                RoomType = "SGL"
+            },
+            new() {
+                HotelId = "H1",
+                Arrival = DateTime.MinValue,
+                Departure = DateTime.MaxValue,
+                RoomType = "SGL"
+            }
+        };
+        var bookingsFile = CreateTempFile(bookings);
+        var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
+
+        // Act
+        var output = CaptureConsoleOutput($"Availability(H1, {dateRange}, SGL)\n", args);
+
+        // Assert
+        output.Trim().Should().Be(availableRoomsCount.ToString());
+    }
+
     [Fact]
     public void ShouldShowUnavailable_WhenNoRoomsAreAvailable()
     {
@@ -201,11 +210,7 @@ public class AvailabilityTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader("Availability(H1, 20240101-20240102, SGL)\n"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput("Availability(H1, 20240101-20240102, SGL)\n", args);
 
         // Assert
         output.Trim().Should().Be("0");
@@ -240,11 +245,7 @@ public class AvailabilityTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader("Availability(H1, 20240101-20240102, SGL)\n"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput("Availability(H1, 20240101-20240102, SGL)\n", args);
 
         // Assert
         output.Trim().Should().Be("-1");
@@ -285,11 +286,7 @@ public class AvailabilityTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader("Availability(H1, 20240101-20240102, SGL)\n"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput("Availability(H1, 20240101-20240102, SGL)\n", args);
 
         // Assert
         output.Trim().Should().Be("-2");

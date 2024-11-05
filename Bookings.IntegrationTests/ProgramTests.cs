@@ -18,10 +18,10 @@ public class ProgramTests
     {
         // Arrange
         // Act
-        var output = CaptureConsoleOutput(() => Program.Main(args));
+        var output = CaptureConsoleOutput(string.Empty, args);
 
         // Assert
-        output.Trim().Should().Be("Usage: myapp --hotels hotels.json --bookings bookings.json");
+        output.Trim().Should().Be("Usage: Bookings.exe --hotels hotels.json --bookings bookings.json");
     }
 
     [Theory]
@@ -33,7 +33,7 @@ public class ProgramTests
         var args = new string[] { "--hotels", hotelsValue, "--bookings", "any_value.json" };
 
         // Act
-        var output = CaptureConsoleOutput(() => Program.Main(args));
+        var output = CaptureConsoleOutput(string.Empty, args);
 
         // Assert
         output.Trim().Should().Be($"File \"{hotelsValue}\" has invalid extension. Only .json files are supported.");
@@ -47,7 +47,7 @@ public class ProgramTests
         var args = new string[] { "--hotels", hotelsValue, "--bookings", "any_value.json" };
 
         // Act
-        var output = CaptureConsoleOutput(() => Program.Main(args));
+        var output = CaptureConsoleOutput(string.Empty, args);
 
         // Assert
         output.Trim()
@@ -64,7 +64,7 @@ public class ProgramTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsValue };
 
         // Act
-        var output = CaptureConsoleOutput(() => Program.Main(args));
+        var output = CaptureConsoleOutput(string.Empty, args);
 
         // Assert
         output.Trim().Should().Be($"File \"{bookingsValue}\" has invalid extension. Only .json files are supported.");
@@ -78,7 +78,7 @@ public class ProgramTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsValue };
 
         // Act
-        var output = CaptureConsoleOutput(() => Program.Main(args));
+        var output = CaptureConsoleOutput(string.Empty, args);
 
         // Assert
         output.Trim()
@@ -93,14 +93,10 @@ public class ProgramTests
     {
         // Arrange
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader(_terminateProgramInput));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput(_terminateProgramInput, args);
 
         // Assert
-        output.Should().Be(string.Empty, "We've send input args and terminated program with sending empty line");
+        output.Trim().Should().Be("To exit, press Enter.", "We've send input args and terminated program with sending empty line");
     }
 
     [Theory]
@@ -114,11 +110,7 @@ public class ProgramTests
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            Console.SetIn(new StringReader(invalidCommand));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput(invalidCommand, args);
 
         // Assert
         output.Should().StartWith("Input is invalid");

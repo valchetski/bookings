@@ -20,12 +20,7 @@ public class SearchTests(ITestOutputHelper testOutputHelper)
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            // Simulate the command execution
-            Console.SetIn(new StringReader(incompleteSearchCommand));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput(incompleteSearchCommand, args);
 
         // Assert
         output.Should().Contain("Provide full parameters list and try again");
@@ -38,12 +33,7 @@ public class SearchTests(ITestOutputHelper testOutputHelper)
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
 
         // Act
-        var output = CaptureConsoleOutput(() => 
-        {
-            // Simulate command execution with a non-existent hotel
-            Console.SetIn(new StringReader("Search(NonExistentHotel, 365, SGL)"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput("Search(NonExistentHotel, 365, SGL)", args);
 
         // Assert
         output.Should().Contain("Hotel not found");
@@ -58,12 +48,7 @@ public class SearchTests(ITestOutputHelper testOutputHelper)
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", BookingsFilePath };
 
         // Act
-        var output = CaptureConsoleOutput(() => 
-        {
-            // Simulate command execution with an invalid number of days
-            Console.SetIn(new StringReader($"Search(H1, {invalidDays}, SGL)"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput($"Search(H1, {invalidDays}, SGL)", args);
 
         // Assert
         output.Should().Contain("Invalid number of days");
@@ -79,12 +64,7 @@ public class SearchTests(ITestOutputHelper testOutputHelper)
         var days = 365;
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            // Simulate command execution for room availability
-            Console.SetIn(new StringReader($"Search(H1, {days}, UNSUPPORTED)"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput($"Search(H1, {days}, UNSUPPORTED)", args);
 
         // Assert
         output.Trim().Should().Be("Room type is not supported by the hotel.");
@@ -100,12 +80,7 @@ public class SearchTests(ITestOutputHelper testOutputHelper)
         var days = 365;
 
         // Act
-        var output = CaptureConsoleOutput(() => 
-        {
-            // Simulate command execution for room availability
-            Console.SetIn(new StringReader($"Search(H1, {days}, SGL)"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput($"Search(H1, {days}, SGL)", args);
 
         // Assert
         var startDate = DateTime.Today;
@@ -172,12 +147,7 @@ public class SearchTests(ITestOutputHelper testOutputHelper)
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
 
         // Act
-        var output = CaptureConsoleOutput(() => 
-        {
-            // Simulate command execution with no available rooms
-            Console.SetIn(new StringReader($"Search(H1, {daysAhead}, SGL)"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput($"Search(H1, {daysAhead}, SGL)", args);
 
         // Assert
         output.Trim().Should().Be(
@@ -218,14 +188,9 @@ public class SearchTests(ITestOutputHelper testOutputHelper)
         var args = new string[] { "--hotels", HotelsFilePath, "--bookings", bookingsFile };
 
         // Act
-        var output = CaptureConsoleOutput(() =>
-        {
-            // Simulate command execution with no available rooms
-            Console.SetIn(new StringReader($"Search(H1, {daysAhead}, SGL)"));
-            Program.Main(args);
-        });
+        var output = CaptureConsoleOutput($"Search(H1, {daysAhead}, SGL)", args, false);
 
         // Assert
-        output.Should().Be("\r\n");
+        output.Trim().Should().BeEmpty();
     }
 }

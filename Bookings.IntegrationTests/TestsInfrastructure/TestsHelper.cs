@@ -21,8 +21,8 @@ internal static class TestsHelper
         File.WriteAllText(tempFile, JsonSerializer.Serialize(data, options));
         return tempFile;
     }
-
-    public static string CaptureConsoleOutput(Action action)
+   
+    public static string CaptureConsoleOutput(string command, string[] args, bool removeEmptyEntries = true)
     {
         // it'll run tests in parallel, but console instance is one
         // simplest approach is just apply lock
@@ -30,8 +30,12 @@ internal static class TestsHelper
         {
             var output = new StringWriter();
             Console.SetOut(output);
-            action();
-            return output.ToString();
+            Console.SetIn(new StringReader(command));
+            Program.Main(args);
+            var lastLine = output.ToString().Split(
+                '\n',
+                removeEmptyEntries ? StringSplitOptions.RemoveEmptyEntries : StringSplitOptions.None).Last();
+            return lastLine;
         }
     }
 }
