@@ -30,7 +30,7 @@ internal class CommandHandler(IAvailabilityService availabilityService) : IComma
         else
         {
             startDate = Parse(dateRange);
-            endDate = startDate;
+            endDate = startDate.AddDays(1);
         }
 
         var roomType = parameters[2];
